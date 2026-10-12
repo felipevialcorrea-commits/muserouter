@@ -1,0 +1,28 @@
+{
+  "description": "AI router kiểu 9Router + Muse tích hợp sẵn (nhúng engine muse2api, đăng nhập auth ngay trong dashboard, port engine 18611): chat/ảnh/video, fallback 3 tầng, RTK, multi-account. Cài global như 9Router: npm i -g. Port chính 21128.",
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "main": "src/server.js",
+  "name": "muserouter",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test tests/smoke.test.js",
+    "setup:muse": "node scripts/setup-muse.mjs"
+  },
+  "type": "module",
+  "version": "0.3.0",
+  "bin": {
+    "muserouter": "cli.js"
+  },
+  "files": [
+    "cli.js",
+    "src",
+    "engine",
+    "scripts",
+    "README.md",
+    ".env.example"
+  ]
+}

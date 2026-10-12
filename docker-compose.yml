@@ -1,0 +1,44 @@
+services:
+  muserouter:
+    build: .
+    container_name: muserouter
+    restart: unless-stopped
+    ports:
+      # Port mới 21128 — không trùng 9Router (20128) / muse2api (18610) nếu đã cài trên máy
+      - "21128:21128"
+    environment:
+      PORT: "21128"
+      ROUTER_API_KEY: "${ROUTER_API_KEY:-}"
+      # Trong Docker, engine Muse chạy ở service riêng bên dưới (profile "muse"),
+      # nên engine tích hợp trong container Node được tắt:
+      MUSE_ENGINE: "off"
+      MUSE_BASE_URL: "http://muse-engine:18611"
+      MUSE_API_KEY: "${MUSE_ENGINE_KEY:-m2a_change_me}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+    volumes:
+      - ./data:/app/data
+
+  # Engine Muse tích hợp (chính là muse2api được nhúng trong project này).
+  # Bật bằng: docker compose --profile muse up -d --build
+  # Sau đó mở http://localhost:18611/admin?key=<MUSE_ENGINE_KEY> để đăng nhập Muse.
+  muse-engine:
+    build:
+      context: ./engine/muse2api
+    container_name: muserouter-muse-engine
+    restart: unless-stopped
+    profiles: ["muse"]
+    # Dockerfile gốc của muse2api ghim port 18610 trong CMD — ghi đè sang 18611 ở đây
+    command: ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "18611"]
+    ports:
+      - "18611:18611"
+    environment:
+      MUSE2API_KEY: "${MUSE_ENGINE_KEY:-m2a_change_me}"
+      MUSE2API_HOST: "0.0.0.0"
+      MUSE2API_PORT: "18611"
+      MUSE2API_CDP_PORT: "19211"
+    volumes:
+      - ./engine-data:/app/data

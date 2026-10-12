@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MuseRouter — Dashboard</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:980px;margin:24px auto;padding:0 16px;background:#0f1115;color:#e8e8e8}
+h1{font-size:22px} h2{font-size:16px;margin-top:28px} .card{background:#181b22;border:1px solid #2a2f3a;border-radius:10px;padding:14px;margin:10px 0}
+input,select,button,textarea{background:#22262f;color:#e8e8e8;border:1px solid #3a4152;border-radius:6px;padding:7px 9px;margin:3px}
+button{cursor:pointer;background:#2f6fed;border-color:#2f6fed;color:#fff} button.ghost{background:#22262f} button.danger{background:#a33;border-color:#a33}
+code{background:#22262f;padding:2px 5px;border-radius:4px} .muted{color:#9aa3b2;font-size:13px} table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{border-bottom:1px solid #2a2f3a;padding:6px;text-align:left} .ok{color:#5fd35f}.bad{color:#ff7676}
+</style></head><body>
+<h1>🎛️ MuseRouter <span class="muted">— như 9Router, thêm kết nối Muse · port <span id="port">21128</span></span></h1>
+<div class="card">
+  <b>Kết nối API</b><br>
+  Endpoint: <code id="endpoint"></code> · API key: <input id="key" size="42" placeholder="mr_... (lấy trong ~/.muserouter/config.json)">
+  <button onclick="saveKey()">Lưu key & tải dữ liệu</button>
+  <div class="muted">Dán endpoint + key này vào Claude Code / Cursor / Cline / Codex (OpenAI-compatible) hoặc dùng <code>/v1/messages</code> cho Anthropic mode.</div>
+</div>
+
+<h2>🔐 Kết nối Muse (tích hợp sẵn — như 9Router)</h2>
+<div class="card">
+  <div id="museStatus" class="muted">Đang kiểm tra engine Muse…</div>
+  <div style="margin-top:8px">
+    <button id="btnMuseSetup" onclick="museSetup()" style="display:none">⬇️ Cài engine Muse (chỉ lần đầu)</button>
+    <button id="btnMuseStart" onclick="museStart()" style="display:none">▶️ Bật engine Muse</button>
+    <a id="btnMuseLogin" href="#" target="_blank" style="display:none"><button>🔑 Đăng nhập Muse (mở trang auth)</button></a>
+  </div>
+  <div class="muted" style="margin-top:8px">Không cần cài muse2api riêng nữa: engine Muse đã nhúng sẵn trong project này (port nội bộ 18611). Bấm <b>Đăng nhập Muse</b> → trang auth mở ra → đăng nhập muse.ai và thêm tài khoản bằng cookie helper theo hướng dẫn ngay trong trang đó. Thêm được nhiều tài khoản, engine tự xoay vòng + tự gia hạn session ~48h.</div>
+  <div id="museAccounts"></div>
+</div>
+
+<h2>🔌 Kết nối (Connections)</h2>
+<div id="conns"></div>
+<div class="card"><b>Thêm kết nối</b><br>
+  <select id="nProvider"></select>
+  <input id="nName" placeholder="Tên (tùy chọn)">
+  <input id="nBase" size="34" placeholder="Base URL (để trống = mặc định)">
+  <input id="nKey" size="30" placeholder="API key của provider">
+  <input id="nModels" size="26" placeholder="Models thêm, cách nhau dấu phẩy">
+  <button onclick="addConn()">Thêm</button>
+  <div class="muted">Riêng <b>Muse</b>: Base URL trỏ tới muse2api của anh (mặc định http://localhost:18610), API key là MUSE2API_KEY của nó. Thêm nhiều kết nối Muse = nhiều instance/tài khoản muse2api, router sẽ xoay vòng.</div>
+</div>
+
+<h2>🎨 Combos (fallback theo thứ tự)</h2>
+<div id="combos"></div>
+<div class="card"><input id="cName" placeholder="Tên combo, vd: coding">
+<input id="cModels" size="60" placeholder="muse/muse-spark, deepseek/deepseek-chat, gemini/gemini-2.5-flash">
+<button onclick="addCombo()">Lưu combo</button>
+<div class="muted">Gọi model bằng tên combo → lỗi/quota ở model đầu sẽ tự nhảy sang model sau.</div></div>
+
+<h2>📊 Thống kê & log gần đây</h2>
+<div class="card"><div id="stats" class="muted">Chưa tải.</div><div id="logs"></div></div>
+
+<label><input type="checkbox" id="rtk" onchange="toggleRtk()"> RTK Token Saver (nén tool_result dài, tiết kiệm ~20–40% token)</label>
+
+<script>
+const $=id=>document.getElementById(id);
+const apiKey=()=>localStorage.getItem('mr_key')||'';
+async function api(path,opts={}){const r=await fetch(path,{...opts,headers:{'content-type':'application/json',authorization:'Bearer '+apiKey(),...(opts.headers||{})}});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error?.message||r.status);return r.json()}
+function saveKey(){localStorage.setItem('mr_key',$('key').value.trim());load()}
+async function load(){
+  $('endpoint').textContent=location.origin+'/v1';
+  if(!apiKey())return;
+  try{
+    const [cfg,provs,stats]=await Promise.all([api('/api/config'),api('/api/providers'),api('/api/stats')]);
+    $('port').textContent=stats.port; $('rtk').checked=!!cfg.rtkEnabled;
+    $('nProvider').innerHTML=Object.entries(provs).map(([k,v])=>`<option value="${k}">${v.label} (${v.prefix}/… · ${v.tier})</option>`).join('');
+    $('conns').innerHTML=cfg.connections.length?('<table><tr><th>Tên</th><th>Provider</th><th>Base URL</th><th>Key</th><th></th></tr>'+cfg.connections.map(c=>`<tr><td>${c.name}</td><td>${c.provider}</td><td><code>${c.baseUrl}</code></td><td>${c.hasKey?'✅ '+c.keyHint:'—'}</td><td><button class="ghost" onclick="testConn('${c.id}')">Test</button> <button class="danger" onclick="delConn('${c.id}')">Xóa</button> <span id="t_${c.id}"></span></td></tr>`).join('')+'</table>'):'<div class="muted">Chưa có kết nối nào.</div>';
+    $('combos').innerHTML=(cfg.combos||[]).map(c=>`<div class="card"><b>${c.name}</b>: ${c.models.join(' → ')} <button class="danger" onclick="delCombo('${c.name}')">Xóa</button></div>`).join('')||'<div class="muted">Chưa có combo.</div>';
+    const u=stats.usage; $('stats').innerHTML=`Tổng request: <b>${u.totalRequests}</b> · Prompt tokens: ${u.promptTokens} · Completion tokens: ${u.completionTokens} · RTK đã tiết kiệm ~${u.rtkSavedTokens} tokens`;
+    $('logs').innerHTML=stats.logs.length?('<table><tr><th>Giờ</th><th>Model</th><th>Upstream</th><th>ms</th><th>Status</th></tr>'+stats.logs.map(l=>`<tr><td>${l.t||''}</td><td>${l.model||''}</td><td>${l.upstream||''}</td><td>${l.ms||''}</td><td>${l.status||''}</td></tr>`).join('')+'</table>'):'';
+  }catch(e){$('stats').textContent='Lỗi: '+e.message+' — kiểm tra lại API key.'}
+}
+async function addConn(){const models=$('nModels').value.split(',').map(s=>s.trim()).filter(Boolean);await api('/api/connections',{method:'POST',body:JSON.stringify({provider:$('nProvider').value,name:$('nName').value,baseUrl:$('nBase').value,apiKey:$('nKey').value,models})});load()}
+async function delConn(id){await api('/api/connections/'+id,{method:'DELETE'});load()}
+async function testConn(id){const el=$('t_'+id);el.textContent='…';const r=await api('/api/connections/'+id+'/test',{method:'POST'});el.innerHTML=r.ok?'<span class="ok">OK '+r.status+'</span>':'<span class="bad">'+(r.error||('HTTP '+r.status))+'</span>'}
+async function addCombo(){await api('/api/combos',{method:'POST',body:JSON.stringify({name:$('cName').value.trim(),models:$('cModels').value.split(',').map(s=>s.trim()).filter(Boolean)})});load()}
+async function delCombo(n){await api('/api/combos/'+n,{method:'DELETE'});load()}
+async function toggleRtk(){await api('/api/settings',{method:'POST',body:JSON.stringify({rtkEnabled:$('rtk').checked})})}
+async function loadMuse(){
+  try{
+    const s=await api('/api/muse/status');
+    const el=$('museStatus');
+    $('btnMuseLogin').href='/muse/login?key='+encodeURIComponent(apiKey());
+    if(!s.depsReady){
+      el.innerHTML='Engine Muse: <span class="bad">chưa cài</span>'+(s.python?'':' — <b>chưa thấy Python 3.10+</b>, cài Python trước nhé')+' · Bấm "Cài engine Muse" (mất vài phút, chỉ 1 lần).';
+      $('btnMuseSetup').style.display=''; $('btnMuseStart').style.display='none'; $('btnMuseLogin').style.display='none';
+    } else if(!s.running){
+      el.innerHTML='Engine Muse: <span class="bad">chưa chạy</span> (port '+s.port+')';
+      $('btnMuseSetup').style.display='none'; $('btnMuseStart').style.display=''; $('btnMuseLogin').style.display='none';
+    } else {
+      el.innerHTML='Engine Muse: <span class="ok">đang chạy</span> · port '+s.port+' · '+(s.accounts?('<b>'+s.accounts.total+'</b> tài khoản Muse đã kết nối'):'…');
+      $('btnMuseSetup').style.display='none'; $('btnMuseStart').style.display='none'; $('btnMuseLogin').style.display='';
+      if(s.accounts&&s.accounts.list.length)$('museAccounts').innerHTML='<table><tr><th>Tài khoản</th><th>Trạng thái</th><th>Cookie</th><th>Hết hạn</th></tr>'+s.accounts.list.map(a=>`<tr><td>${a.label||a.id}</td><td>${a.enabled?'bật':'tắt'}</td><td>${a.essentialOk?'✅ đủ':'⚠️ thiếu'}</td><td>${a.expiresAt?new Date(a.expiresAt*1000).toLocaleString():'—'}</td></tr>`).join('')+'</table>';
+    }
+  }catch(e){$('museStatus').textContent='Không đọc được trạng thái Muse: '+e.message}
+}
+async function museSetup(){$('museStatus').textContent='Đang cài engine Muse… (vài phút, cứ để chạy)';await api('/api/muse/setup',{method:'POST'});const t=setInterval(async()=>{const s=await api('/api/muse/status');if(s.depsReady){clearInterval(t);loadMuse();museStart()}},5000)}
+async function museStart(){$('museStatus').textContent='Đang bật engine Muse…';const r=await api('/api/muse/start',{method:'POST'});await loadMuse();load();if(r.reason==='deps-missing')$('museStatus').textContent='Chưa cài engine — bấm "Cài engine Muse" trước.'}
+$('key').value=apiKey(); load(); loadMuse();
+</script></body></html>
