@@ -4,6 +4,20 @@
 
 > Project độc lập, viết mới (Node.js thuần, **không cần `npm install`** — chỉ dùng thư viện chuẩn của Node ≥ 20). Lấy cảm hứng tính năng từ 9Router và giao thức API của muse2api; cả hai project gốc đều là MIT — xem mục Giấy phép ở cuối.
 
+## ⚡ Cài đặt & chạy — như 9Router
+
+```bash
+npm install -g github:felipevialcorrea-commits/muserouter
+muserouter setup
+muserouter
+```
+
+- `npm install -g github:felipevialcorrea-commits/muserouter` — cài MuseRouter vào máy (cần Node.js ≥ 20 và Git). Cập nhật bản mới sau này cũng chạy lại đúng lệnh này.
+- `muserouter setup` — **chỉ chạy 1 lần đầu**: cài engine Muse tích hợp (cần thêm Python 3.10+ và Chrome/Chromium trên máy).
+- `muserouter` — chạy server ở **port 21128** và **tự mở dashboard** tại http://localhost:21128/dashboard. Từ lần sau chỉ cần lệnh này. Vào dashboard → mục **Kết nối Muse** → **Đăng nhập Muse** là dùng được.
+
+Lệnh phụ: `muserouter --port 21130` (đổi port), `muserouter --no-open` (không tự mở trình duyệt), `muserouter --version`, gỡ cài đặt: `npm uninstall -g muserouter`. Dữ liệu (API key, config, log) nằm ở `~/.muserouter/` (Windows: `C:\Users\<tên>\.muserouter\`).
+
 ## Vì sao có project này?
 
 - 9Router rất mạnh (40+ provider, fallback, tiết kiệm token) nhưng **chưa có Muse**.
@@ -59,15 +73,7 @@ Claude Code / Codex / Cursor / Cline / bất kỳ client OpenAI-compatible nào
 
 ### Cách 0 — Cài global như 9Router (khuyên dùng)
 
-Sau khi project đã được đẩy lên GitHub (mục "Đẩy lên GitHub" ở cuối), bất kỳ máy nào cũng cài được bằng đúng 1 lệnh — giống hệt `npm install -g 9router`:
-
-```bash
-npm install -g github:felipevialcorrea-commits/muserouter
-muserouter setup     # 1 lần đầu: cài engine Muse tích hợp (cần Python 3.10+)
-muserouter           # chạy server ở port 21128 + tự mở dashboard
-```
-
-Chưa đẩy GitHub cũng cài global được ngay từ thư mục source:
+Xem mục **⚡ Cài đặt & chạy — như 9Router** ngay đầu trang. Cũng cài global được ngay từ thư mục source (không qua GitHub):
 
 ```bash
 cd muserouter && npm install -g .
