@@ -62,7 +62,7 @@ Claude Code / Codex / Cursor / Cline / bất kỳ client OpenAI-compatible nào
 Sau khi project đã được đẩy lên GitHub (mục "Đẩy lên GitHub" ở cuối), bất kỳ máy nào cũng cài được bằng đúng 1 lệnh — giống hệt `npm install -g 9router`:
 
 ```bash
-npm install -g github:<tên-github-của-bạn>/muserouter
+npm install -g github:felipevialcorrea-commits/muserouter
 muserouter setup     # 1 lần đầu: cài engine Muse tích hợp (cần Python 3.10+)
 muserouter           # chạy server ở port 21128 + tự mở dashboard
 ```
@@ -180,11 +180,11 @@ Repo đã sẵn sàng để push (đã `git init`, có commit, `.gitignore` đã
 cd muserouter
 git init -b main   # bỏ qua nếu đã có .git
 git add -A && git commit -m "MuseRouter"
-git remote add origin https://github.com/<tên-github-của-bạn>/muserouter.git
+git remote add origin https://github.com/felipevialcorrea-commits/muserouter.git
 git push -u origin main
 ```
 
-Push xong, người khác (hoặc chính anh ở máy khác) cài bằng: `npm install -g github:<tên-github-của-bạn>/muserouter` rồi chạy `muserouter`.
+Push xong, người khác (hoặc chính anh ở máy khác) cài bằng: `npm install -g github:felipevialcorrea-commits/muserouter` rồi chạy `muserouter`.
 
 > Muốn phát hành lên npm registry để cài bằng `npm install -g muserouter` (không cần tiền tố github:) thì cần tài khoản npm: `npm login` rồi `npm publish` trong thư mục project.
 

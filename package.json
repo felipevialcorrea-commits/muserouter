@@ -24,5 +24,10 @@
     "scripts",
     "README.md",
     ".env.example"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/felipevialcorrea-commits/muserouter.git"
+  },
+  "homepage": "https://github.com/felipevialcorrea-commits/muserouter"
 }
